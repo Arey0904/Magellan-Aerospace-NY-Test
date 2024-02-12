@@ -1,0 +1,46 @@
+-- Create database Part
+CREATE DATABASE Part;
+
+-- Connect to Part database
+\c Part;
+
+-- Create item table
+CREATE TABLE item (
+    id SERIAL PRIMARY KEY,
+    item_name VARCHAR(50) NOT NULL,
+    parent_item INTEGER REFERENCES item(id),
+    cost INTEGER NOT NULL,
+    req_date DATE NOT NULL
+);
+
+-- Insert data into item table
+INSERT INTO item (item_name, parent_item, cost, req_date) VALUES
+    ('Item1', NULL, 500, '2024-02-20'),
+    ('Sub1', 1, 200, '2024-02-10'),
+    ('Sub2', 1, 300, '2024-01-05'),
+    ('Sub3', 2, 300, '2024-01-02'),
+    ('Sub4', 2, 400, '2024-01-02'),
+    ('Item2', NULL, 600, '2024-03-15'),
+    ('Sub1', 6, 200, '2024-02-25');
+
+-- Create function Get_Total_Cost
+CREATE OR REPLACE FUNCTION Get_Total_Cost(item_name_input VARCHAR) RETURNS INTEGER AS $$
+DECLARE
+    total_cost INTEGER := 0;
+BEGIN
+    -- Calculate total cost recursively
+    WITH RECURSIVE item_hierarchy AS (
+        SELECT id, cost
+        FROM item
+        WHERE item_name = item_name_input
+        UNION ALL
+        SELECT i.id, i.cost
+        FROM item_hierarchy ih
+        JOIN item i ON i.parent_item = ih.id
+    )
+    SELECT SUM(cost) INTO total_cost FROM item_hierarchy;
+    
+    RETURN total_cost;
+END;
+$$ LANGUAGE plpgsql;
+
